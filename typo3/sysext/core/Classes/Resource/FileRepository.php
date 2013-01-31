@@ -202,18 +202,39 @@ class FileRepository extends AbstractRepository {
 		if (!\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($uid)) {
 			throw new \InvalidArgumentException('Uid of related record has to be an integer.', 1316789798);
 		}
+		$considerWorkspaces = !empty($GLOBALS['BE_USER']->workspace) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($tableName) ? 1 : 0;
+		if($considerWorkspaces)
+		{
+			$row = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+				'*',
+				$tableName,
+				'uid=' . intval($uid)
+			);
+			$row = $row[0];
+			\TYPO3\CMS\Backend\Utility\BackendUtility::workspaceOL($tableName, $row);
+			if(isset($row['_ORIG_uid']))
+				$uid = $row['_ORIG_uid'];
+		}
 		$references = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
 			'*',
 			'sys_file_reference',
 			'tablenames=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($tableName, 'sys_file_reference') .
-				' AND deleted = 0' .
-				' AND hidden = 0' .
-				' AND uid_foreign=' . intval($uid) .
-				' AND fieldname=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($fieldName, 'sys_file_reference'),
+			' AND deleted = 0' .
+			' AND hidden = 0' .
+			' AND uid_foreign=' . intval($uid) .
+			' AND fieldname=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($fieldName, 'sys_file_reference'),
 			'',
 			'sorting_foreign'
 		);
 		foreach ($references as $referenceRecord) {
+			if($referenceRecord['t3ver_state'] > 0)
+			{
+				continue;
+			}
+			if ($considerWorkspaces)
+			{
+				\TYPO3\CMS\Backend\Utility\BackendUtility::workspaceOL('sys_file_reference', $referenceRecord);
+			}
 			$itemList[] = $this->createFileReferenceObject($referenceRecord);
 		}
 		return $itemList;

@@ -151,8 +151,8 @@ class DataHandlerHook {
 	public function processCmdmap_postProcess($command, $table, $id, $value, \TYPO3\CMS\Core\DataHandling\DataHandler $tcemain) {
 		if ($command === 'move') {
 			if ($value < 0) {
-				$movePlaceHolder = \TYPO3\CMS\Backend\Utility\BackendUtility::getMovePlaceholder($table, abs($value), 'uid');
-				if ($movePlaceHolder !== FALSE) {
+				$rec = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($table, $id, 't3ver_wsid');
+				if ($rec['t3ver_wsid'] > 0 && $movePlaceHolder = \TYPO3\CMS\Backend\Utility\BackendUtility::getMovePlaceholder($table, abs($value), 'uid')) {
 					$destPid = -$movePlaceHolder['uid'];
 					$tcemain->moveRecord_raw($table, $id, $destPid);
 				}
@@ -799,7 +799,7 @@ class DataHandlerHook {
 											$curVersion['t3ver_state'] = 0;
 										}
 										// Registering and swapping MM relations in current and swap records:
-										$tcemainObj->version_remapMMForVersionSwap($table, $id, $swapWith);
+											$tcemainObj->version_remapMMForVersionSwap($table, $id, $swapWith);
 										// Generating proper history data to prepare logging
 										$tcemainObj->compareFieldArrayWithCurrentAndUnset($table, $id, $swapVersion);
 										$tcemainObj->compareFieldArrayWithCurrentAndUnset($table, $swapWith, $curVersion);
@@ -938,12 +938,18 @@ class DataHandlerHook {
 			$dbAnalysisSwap->start('', $conf['foreign_table'], '', $swapVersion['uid'], $table, $conf);
 			// Update relations for both (workspace/versioning) sites:
 			if (count($dbAnalysisCur->itemArray)) {
-				$dbAnalysisCur->writeForeignField($conf, $curVersion['uid'], $swapVersion['uid']);
-				$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisCur, $conf, $swapVersion['uid']));
+				// Hacked for gridelements for now.  This is handled independently inside the extension.
+				if(!$conf['versioning']['dontRemapRelations']) {
+					$dbAnalysisCur->writeForeignField($conf, $curVersion['uid'], $swapVersion['uid']);
+					$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisCur, $conf, $swapVersion['uid']));
+				}
 			}
 			if (count($dbAnalysisSwap->itemArray)) {
-				$dbAnalysisSwap->writeForeignField($conf, $swapVersion['uid'], $curVersion['uid']);
-				$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisSwap, $conf, $curVersion['uid']));
+				// Hacked for gridelements for now.  This is handled independently inside the extension.
+				if(!$conf['versioning']['dontRemapRelations']) {
+					$dbAnalysisCur->writeForeignField($conf, $curVersion['uid'], $swapVersion['uid']);
+					$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisCur, $conf, $swapVersion['uid']));
+				}
 			}
 			$items = array_merge($dbAnalysisCur->itemArray, $dbAnalysisSwap->itemArray);
 			foreach ($items as $item) {
