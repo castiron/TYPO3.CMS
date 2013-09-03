@@ -112,9 +112,6 @@ class FrontendUserAuthentication extends \TYPO3\CMS\Core\Authentication\Abstract
 
 	protected $sessionDataTimestamp = NULL;
 
-	/** @var  \TYPO3\CMS\Core\Session\StorageInterface $sessionStorage */
-	protected $sessionStorage;
-
 	/**
 	 * Default constructor.
 	 */
@@ -143,14 +140,6 @@ class FrontendUserAuthentication extends \TYPO3\CMS\Core\Authentication\Abstract
 		$this->sendNoCacheHeaders = FALSE;
 		$this->getFallBack = TRUE;
 		$this->getMethodEnabled = TRUE;
-
-		/** @var Session\StorageInterface $storage */
-		$storage = GeneralUtility::makeInstanceService('sessionStorage', 'frontend');
-		if (is_object($storage)) {
-			$this->sessionStorage = $storage;
-		} else {
-			GeneralUtility::devLog('Could not instantiate session StorageInterface.', 'frontend', $storage);
-		}
 	}
 
 	/**
@@ -617,23 +606,15 @@ class FrontendUserAuthentication extends \TYPO3\CMS\Core\Authentication\Abstract
 		$count = parent::isExistingSessionRecord($id);
 		// Check if there are any fe_session_data records for the session ID the client claims to have
 		if ($count == FALSE) {
-// TODO tk 2013-08-27 move session storage variant to parent method
-			if ($this->sessionStorage) {
-				$sessionData = $this->sessionStorage->get($id);
-				if ($sessionData instanceof Session\Data) {
+			$statement = $GLOBALS['TYPO3_DB']->prepare_SELECTquery('content,tstamp', 'fe_session_data', 'hash = :hash');
+			$res = $statement->execute(array(':hash' => $id));
+			if ($res !== FALSE) {
+				if ($sesDataRow = $statement->fetch()) {
 					$count = TRUE;
+					$this->sesData = unserialize($sesDataRow['content']);
+					$this->sessionDataTimestamp = $sesDataRow['tstamp'];
 				}
-			} else {
-				$statement = $GLOBALS['TYPO3_DB']->prepare_SELECTquery('content,tstamp', 'fe_session_data', 'hash = :hash');
-				$res = $statement->execute(array(':hash' => $id));
-				if ($res !== FALSE) {
-					if ($sesDataRow = $statement->fetch()) {
-						$count = TRUE;
-						$this->sesData = unserialize($sesDataRow['content']);
-						$this->sessionDataTimestamp = $sesDataRow['tstamp'];
-					}
-					$statement->free();
-				}
+				$statement->free();
 			}
 		}
 		return $count;
