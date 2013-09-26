@@ -420,9 +420,11 @@ class ResourceFactory implements \TYPO3\CMS\Core\SingletonInterface {
 		} elseif (@is_file(PATH_site . $input)) {
 			// only the local file
 			return $this->getFileObjectFromCombinedIdentifier($input);
-		} else {
+		} elseif (@is_dir(PATH_site . $input)) {
 			// only the local path
 			return $this->getFolderObjectFromCombinedIdentifier($input);
+		} else {
+			return $input;
 		}
 	}
 
