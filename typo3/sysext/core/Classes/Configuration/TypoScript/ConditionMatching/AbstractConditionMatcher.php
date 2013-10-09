@@ -26,6 +26,8 @@ namespace TYPO3\CMS\Core\Configuration\TypoScript\ConditionMatching;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Matching TypoScript conditions
  *
@@ -406,9 +408,7 @@ abstract class AbstractConditionMatcher {
 			$values = preg_split('/\\(|\\)/', $value);
 			$funcName = trim($values[0]);
 			$funcValue = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $values[1]);
-			if (function_exists($funcName) && call_user_func($funcName, $funcValue[0])) {
-				return TRUE;
-			}
+			return GeneralUtility::callUserFunction($funcName, $funcValue[0],$this);
 			break;
 		}
 		return NULL;
