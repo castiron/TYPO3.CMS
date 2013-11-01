@@ -4692,6 +4692,7 @@ class DataHandler {
 					// If any fields were changed, those fields are updated!
 					if (count($newData)) {
 						$this->updateDB($table, $theUidToUpdate_saveTo, $newData);
+						$this->placeholderShadowing($table, $theUidToUpdate_saveTo);
 					}
 				}
 			}
