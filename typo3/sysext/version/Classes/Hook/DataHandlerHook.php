@@ -942,8 +942,11 @@ class DataHandlerHook {
 				$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisCur, $conf, $swapVersion['uid']));
 			}
 			if (count($dbAnalysisSwap->itemArray)) {
-				$dbAnalysisSwap->writeForeignField($conf, $swapVersion['uid'], $curVersion['uid']);
-				$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisSwap, $conf, $curVersion['uid']));
+				// Hacked for gridelements for now.  This is handled independently inside the extension.
+				if(!$conf['versioning']['dontRemapRelations']) {
+					$dbAnalysisCur->writeForeignField($conf, $curVersion['uid'], $swapVersion['uid']);
+					$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisCur, $conf, $swapVersion['uid']));
+				}
 			}
 			$items = array_merge($dbAnalysisCur->itemArray, $dbAnalysisSwap->itemArray);
 			foreach ($items as $item) {
