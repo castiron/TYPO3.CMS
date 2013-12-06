@@ -533,11 +533,13 @@ class ResourceFactory implements \TYPO3\CMS\Core\SingletonInterface {
 					/** @var $GLOBALS['TYPO3_DB'] \TYPO3\CMS\Core\Database\DatabaseConnection */
 					$fileReferenceData = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow('*', 'sys_file_reference', 'uid=' . intval($uid) . ' AND deleted=0');
 				}
-				if (!is_array($fileReferenceData)) {
-					throw new \InvalidArgumentException('No fileusage (sys_file_reference) found for given UID.', 1317178794);
-				}
+//				if (!is_array($fileReferenceData)) {
+//					throw new \InvalidArgumentException('No fileusage (sys_file_reference) found for given UID.', 1317178794);
+//				}
 			}
-			$this->fileReferenceInstances[$uid] = $this->createFileReferenceObject($fileReferenceData);
+			if (is_array($fileReferenceData)) {
+				$this->fileReferenceInstances[$uid] = $this->createFileReferenceObject($fileReferenceData);
+			}
 		}
 		return $this->fileReferenceInstances[$uid];
 	}

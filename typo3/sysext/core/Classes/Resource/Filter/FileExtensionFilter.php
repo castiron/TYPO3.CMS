@@ -70,13 +70,14 @@ class FileExtensionFilter {
 				}
 				$parts = \TYPO3\CMS\Core\Utility\GeneralUtility::revExplode('_', $value, 2);
 				$fileReferenceUid = $parts[count($parts) - 1];
-				$fileReference = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileReferenceObject($fileReferenceUid);
-				$file = $fileReference->getOriginalFile();
-				if ($this->isAllowed($file)) {
-					$cleanValues[] = $value;
-				} else {
-					// Remove the erroneously created reference record again
-					$tceMain->deleteAction('sys_file_reference', $fileReferenceUid);
+				if($fileReference = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileReferenceObject($fileReferenceUid)) {
+					$file = $fileReference->getOriginalFile();
+					if ($this->isAllowed($file)) {
+						$cleanValues[] = $value;
+					} else {
+						// Remove the erroneously created reference record again
+						$tceMain->deleteAction('sys_file_reference', $fileReferenceUid);
+					}
 				}
 			}
 		}
