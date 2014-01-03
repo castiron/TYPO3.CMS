@@ -615,6 +615,11 @@ class RelationHandler {
 		$foreign_table_field = $conf['foreign_table_field'];
 		$useDeleteClause = $this->undeleteRecord ? FALSE : TRUE;
 		$foreign_match_fields = is_array($conf['foreign_match_fields']) ? $conf['foreign_match_fields'] : array();
+		$currentRecordVersionInfo = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid,t3ver_oid', '', $useDeleteClause);
+		if($currentRecordVersionInfo['t3ver_wsid'] > 0) {
+			$uid = $currentRecordVersionInfo['t3ver_oid'];
+		}
+
 		// Search for $uid in foreign_field, and if we have symmetric relations, do this also on symmetric_field
 		if ($conf['symmetric_field']) {
 			$whereClause = '(' . $conf['foreign_field'] . '=' . $uid . ' OR ' . $conf['symmetric_field'] . '=' . $uid . ')';
@@ -636,7 +641,10 @@ class RelationHandler {
 		}
 		// Select children in the same workspace:
 		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
-			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid', '', $useDeleteClause);
+			if($conf['foreign_field'] == 'tx_gridelements_container') {
+				$test = 1;
+			}
+			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace,$this->currentTable, $uid, 't3ver_wsid', '');
 			$whereClause .= \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, $currentRecord['t3ver_wsid']);
 		}
 		// Get the correct sorting field
@@ -721,6 +729,9 @@ class RelationHandler {
 				}
 				if ($symmetric_field) {
 					$isOnSymmetricSide = self::isOnSymmetricSide($parentUid, $conf, $row);
+				}
+				if ($uid == '36307') {
+					$test = 1;
 				}
 				$updateValues = $foreign_match_fields;
 				$workspaceValues = $foreign_match_fields;

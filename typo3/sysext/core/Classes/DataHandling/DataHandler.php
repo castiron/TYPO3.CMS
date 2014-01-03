@@ -1235,6 +1235,9 @@ class DataHandler {
 					default:
 						if (isset($GLOBALS['TCA'][$table]['columns'][$field])) {
 							// Evaluating the value
+							if($field == 'tx_gridelements_container' || $field == 'tx_gridelements_children') {
+								$test = 1;
+							}
 							$res = $this->checkValue($table, $field, $fieldValue, $id, $status, $realPid, $tscPID);
 							if (array_key_exists('value', $res)) {
 								$fieldArray[$field] = $res['value'];
@@ -2099,6 +2102,9 @@ class DataHandler {
 	 * @todo Define visibility
 	 */
 	public function checkValue_inline($res, $value, $tcaFieldConf, $PP, $field, array $additionalData = NULL) {
+		if ($field == 'tx_gridelements_children' && $value == '36307') {
+			$test = 1;
+		}
 		list($table, $id, $curValue, $status, $realPid, $recFID) = $PP;
 		if (!$tcaFieldConf['foreign_table']) {
 			// Fatal error, inline fields should always have a foreign_table defined
@@ -2618,8 +2624,11 @@ class DataHandler {
 		if ($tcaFieldConf['foreign_field']) {
 			// if the record was imported, sorting was also imported, so skip this
 			$skipSorting = $this->callFromImpExp ? TRUE : FALSE;
-			// update record in intermediate table (sorting & pointer uid to parent record)
-			$dbAnalysis->writeForeignField($tcaFieldConf, $id, 0, $skipSorting);
+//			$autoVersioningInProcess = in_array($id, $this->autoVersionIdMap[$table]);
+//			if(!$tcaFieldConf['versioning']['dontRemapRelations'] && !$autoVersioningInProcess) {
+				// update record in intermediate table (sorting & pointer uid to parent record)
+				$dbAnalysis->writeForeignField($tcaFieldConf, $id, 0, $skipSorting);
+//			}
 			$newValue = $keepTranslation ? 0 : $dbAnalysis->countItems(FALSE);
 		} else {
 			if ($this->getInlineFieldType($tcaFieldConf) == 'mm') {
