@@ -615,11 +615,35 @@ class RelationHandler {
 		$foreign_table_field = $conf['foreign_table_field'];
 		$useDeleteClause = $this->undeleteRecord ? FALSE : TRUE;
 		$foreign_match_fields = is_array($conf['foreign_match_fields']) ? $conf['foreign_match_fields'] : array();
+
+		if($conf['foreign_field'] == 'tx_gridelements_container') {
+			$test = 1;
+		}
+
+		$whereClause = '1=1';
+
+		// Select children in the same workspace:
+		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+
+			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid,t3ver_oid', '', $useDeleteClause);
+			if($currentRecord['t3ver_wsid'] > 0 && $currentRecord['t3ver_oid']) {
+				$uid = $currentRecord['t3ver_oid'];
+			}
+			// We want both the current workspace
+			$thisWsClause = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table);
+			if ($GLOBALS['BE_USER']->workspace != '0') {
+				$liveWsClause = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, 0);
+				$whereClause .= ' AND ((1=1 ' . $thisWsClause . ') OR (1=1 ' . $liveWsClause . '))';
+			} else {
+				$whereClause .= $thisWsClause;
+			}
+		}
+
 		// Search for $uid in foreign_field, and if we have symmetric relations, do this also on symmetric_field
 		if ($conf['symmetric_field']) {
-			$whereClause = '(' . $conf['foreign_field'] . '=' . $uid . ' OR ' . $conf['symmetric_field'] . '=' . $uid . ')';
+			$whereClause .= ' AND (' . $conf['foreign_field'] . '=' . $uid . ' OR ' . $conf['symmetric_field'] . '=' . $uid . ')';
 		} else {
-			$whereClause = $conf['foreign_field'] . '=' . $uid;
+			$whereClause .= ' AND ' .$conf['foreign_field'] . '=' . $uid;
 		}
 		// Use the deleteClause (e.g. "deleted=0") on this table
 		if ($useDeleteClause) {
@@ -634,11 +658,7 @@ class RelationHandler {
 		foreach ($foreign_match_fields as $field => $value) {
 			$whereClause .= ' AND ' . $field . '=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $foreign_table);
 		}
-		// Select children in the same workspace:
-		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
-			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid', '', $useDeleteClause);
-			$whereClause .= \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, $currentRecord['t3ver_wsid']);
-		}
+
 		// Get the correct sorting field
 		// Specific manual sortby for data handled by this field
 		if ($conf['foreign_sortby']) {
@@ -667,9 +687,28 @@ class RelationHandler {
 		// Strip a possible "ORDER BY" in front of the $sortby value
 		$sortby = $GLOBALS['TYPO3_DB']->stripOrderBy($sortby);
 		// Get the rows from storage
-		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid', $foreign_table, $whereClause, '', $sortby);
+		// If we've got a workspace-enabled table, we may have selected too many records (versions and their live counterparts):
+		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+			$selectFields = 'uid, t3ver_oid';
+		} else {
+			$selectFields = 'uid';
+		}
+		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($selectFields, $foreign_table, $whereClause, '', $sortby);
 		if (count($rows)) {
+			$idsWithVersions = array();
+			// If we've got a workspace-enabled table, we may have selected too many records (versions and their live counterparts):
+			if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+				foreach ($rows as $k => $row) {
+					if ($row['t3ver_oid']) {
+						$idsWithVersions[$row['t3ver_oid']] = true;
+					}
+				}
+				reset($rows);
+			}
 			foreach ($rows as $row) {
+				if($idsWithVersions[$row['uid']]) {
+					continue;
+				}
 				$this->itemArray[$key]['id'] = $row['uid'];
 				$this->itemArray[$key]['table'] = $foreign_table;
 				$this->tableArray[$foreign_table][] = $row['uid'];
@@ -721,6 +760,9 @@ class RelationHandler {
 				}
 				if ($symmetric_field) {
 					$isOnSymmetricSide = self::isOnSymmetricSide($parentUid, $conf, $row);
+				}
+				if ($uid == '36307') {
+					$test = 1;
 				}
 				$updateValues = $foreign_match_fields;
 				$workspaceValues = $foreign_match_fields;
