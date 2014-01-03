@@ -615,16 +615,28 @@ class RelationHandler {
 		$foreign_table_field = $conf['foreign_table_field'];
 		$useDeleteClause = $this->undeleteRecord ? FALSE : TRUE;
 		$foreign_match_fields = is_array($conf['foreign_match_fields']) ? $conf['foreign_match_fields'] : array();
-		$currentRecordVersionInfo = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid,t3ver_oid', '', $useDeleteClause);
-		if($currentRecordVersionInfo['t3ver_wsid'] > 0) {
-			$uid = $currentRecordVersionInfo['t3ver_oid'];
+
+		if($conf['foreign_field'] == 'tx_gridelements_container') {
+			$test = 1;
+		}
+
+		$whereClause = '1=1';
+
+		// Select children in the same workspace:
+		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+
+			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid,t3ver_oid', '', $useDeleteClause);
+			if($currentRecord['t3ver_wsid'] > 0) {
+				$uid = $currentRecord['t3ver_oid'];
+			}
+			$whereClause .= \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, $currentRecord['t3ver_wsid']);
 		}
 
 		// Search for $uid in foreign_field, and if we have symmetric relations, do this also on symmetric_field
 		if ($conf['symmetric_field']) {
-			$whereClause = '(' . $conf['foreign_field'] . '=' . $uid . ' OR ' . $conf['symmetric_field'] . '=' . $uid . ')';
+			$whereClause .= ' AND (' . $conf['foreign_field'] . '=' . $uid . ' OR ' . $conf['symmetric_field'] . '=' . $uid . ')';
 		} else {
-			$whereClause = $conf['foreign_field'] . '=' . $uid;
+			$whereClause .= ' AND ' .$conf['foreign_field'] . '=' . $uid;
 		}
 		// Use the deleteClause (e.g. "deleted=0") on this table
 		if ($useDeleteClause) {
@@ -639,14 +651,7 @@ class RelationHandler {
 		foreach ($foreign_match_fields as $field => $value) {
 			$whereClause .= ' AND ' . $field . '=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $foreign_table);
 		}
-		// Select children in the same workspace:
-		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
-			if($conf['foreign_field'] == 'tx_gridelements_container') {
-				$test = 1;
-			}
-			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace,$this->currentTable, $uid, 't3ver_wsid', '');
-			$whereClause .= \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, $currentRecord['t3ver_wsid']);
-		}
+
 		// Get the correct sorting field
 		// Specific manual sortby for data handled by this field
 		if ($conf['foreign_sortby']) {
