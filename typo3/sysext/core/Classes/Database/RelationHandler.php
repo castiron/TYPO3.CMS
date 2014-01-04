@@ -629,7 +629,14 @@ class RelationHandler {
 			if($currentRecord['t3ver_wsid'] > 0) {
 				$uid = $currentRecord['t3ver_oid'];
 			}
-			$whereClause .= \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, $currentRecord['t3ver_wsid']);
+			// We want both the current workspace
+			$thisWsClause = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table);
+			if ($GLOBALS['BE_USER']->workspace != '0') {
+				$liveWsClause = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, 0);
+				$whereClause .= ' AND ((1=1 ' . $thisWsClause . ') OR (1=1 ' . $liveWsClause . '))';
+			} else {
+				$whereClause .= $thisWsClause;
+			}
 		}
 
 		// Search for $uid in foreign_field, and if we have symmetric relations, do this also on symmetric_field
@@ -680,9 +687,28 @@ class RelationHandler {
 		// Strip a possible "ORDER BY" in front of the $sortby value
 		$sortby = $GLOBALS['TYPO3_DB']->stripOrderBy($sortby);
 		// Get the rows from storage
-		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid', $foreign_table, $whereClause, '', $sortby);
+		// If we've got a workspace-enabled table, we may have selected too many records (versions and their live counterparts):
+		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+			$selectFields = 'uid, t3ver_oid';
+		} else {
+			$selectFields = 'uid';
+		}
+		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($selectFields, $foreign_table, $whereClause, '', $sortby);
 		if (count($rows)) {
+			$idsWithVersions = array();
+			// If we've got a workspace-enabled table, we may have selected too many records (versions and their live counterparts):
+			if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+				foreach ($rows as $k => $row) {
+					if ($row['t3ver_oid']) {
+						$idsWithVersions[$row['t3ver_oid']] = true;
+					}
+				}
+				reset($rows);
+			}
 			foreach ($rows as $row) {
+				if($idsWithVersions[$row['uid']]) {
+					continue;
+				}
 				$this->itemArray[$key]['id'] = $row['uid'];
 				$this->itemArray[$key]['table'] = $foreign_table;
 				$this->tableArray[$foreign_table][] = $row['uid'];
