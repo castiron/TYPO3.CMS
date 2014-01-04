@@ -626,7 +626,7 @@ class RelationHandler {
 		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
 
 			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid,t3ver_oid', '', $useDeleteClause);
-			if($currentRecord['t3ver_wsid'] > 0) {
+			if($currentRecord['t3ver_wsid'] > 0 && $currentRecord['t3ver_oid']) {
 				$uid = $currentRecord['t3ver_oid'];
 			}
 			// We want both the current workspace
