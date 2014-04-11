@@ -283,7 +283,7 @@ class SuggestElement {
 			for ($i = 0; $i < $maxItems; $i++) {
 				$row = $resultRows[$rowsSort[$i]];
 				$rowId = $row['table'] . '-' . $row['uid'] . '-' . $table . '-' . $uid . '-' . $field;
-				$rowId = preg_replace("/[^A-Za-z0-9 ]/", '', $rowId);
+				$rowId = preg_replace("/[^A-Za-z0-9- ]/", '', $rowId);
 				$listItems[] = '<li' . ($row['class'] != '' ? ' class="' . $row['class'] . '"' : '') . ' id="' . $rowId . '"' . ($row['style'] != '' ? ' style="' . $row['style'] . '"' : '') . '>' . $row['sprite'] . $row['text'] . '</li>';
 			}
 		}
