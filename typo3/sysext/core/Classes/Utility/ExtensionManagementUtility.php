@@ -316,6 +316,7 @@ class ExtensionManagementUtility {
 					$paletteNames = array_filter(array_merge($paletteMatches[1], $paletteMatches[2]));
 					if (count($paletteNames)) {
 						foreach ($paletteNames as $paletteName) {
+							$paletteName = trim($paletteName, '; ');
 							$palette = $GLOBALS['TCA'][$table]['palettes'][$paletteName];
 							switch ($positionIdentifier) {
 								case 'after':
