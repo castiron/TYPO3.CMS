@@ -225,6 +225,27 @@ class Typo3DbQueryParser implements \TYPO3\CMS\Core\SingletonInterface {
 	}
 
 	/**
+	 * Add query parts that MUST NOT be cached.
+	 * Call this function for any query
+	 *
+	 * @param QuerySettingsInterface $querySettings
+	 * @param array $sql
+	 * @throws \InvalidArgumentException
+	 * @return void
+	 */
+	public function addDynamicQueryParts(QuerySettingsInterface $querySettings, array &$sql) {
+		if (!isset($sql['additionalWhereClause'])) {
+			throw new \InvalidArgumentException('Invalid statement given.', 1399512421);
+		}
+		$tableNames = array_unique(array_keys($sql['tables'] + $sql['unions']));
+		foreach ($tableNames as $tableName) {
+			if (is_string($tableName) && !empty($tableName)) {
+				$this->addVisibilityConstraintStatement($querySettings, $tableName, $sql);
+			}
+		}
+	}
+
+	/**
 	 * Transforms a Query Source into SQL and parameter arrays
 	 *
 	 * @param Qom\SourceInterface $source The source
@@ -367,7 +388,17 @@ class Typo3DbQueryParser implements \TYPO3\CMS\Core\SingletonInterface {
 				$typeOfRelation = $columnMap instanceof ColumnMap ? $columnMap->getTypeOfRelation() : NULL;
 				if ($typeOfRelation === ColumnMap::RELATION_HAS_AND_BELONGS_TO_MANY) {
 					$relationTableName = $columnMap->getRelationTableName();
-					$sql['where'][] = $tableName . '.uid IN (SELECT ' . $columnMap->getParentKeyFieldName() . ' FROM ' . $relationTableName . ' WHERE ' . $columnMap->getChildKeyFieldName() . '=' . $parameterIdentifier . ')';
+					$relationTableMatchFields = $columnMap->getRelationTableMatchFields();
+					if (is_array($relationTableMatchFields)) {
+						$additionalWhere = array();
+						foreach ($relationTableMatchFields as $fieldName => $value) {
+							$additionalWhere[] = $fieldName . ' = ' . $this->databaseHandle->fullQuoteStr($value, $relationTableName);
+						}
+						$additionalWhereForMatchFields = ' AND ' . implode(' AND ', $additionalWhere);
+					} else {
+						$additionalWhereForMatchFields = '';
+					}
+					$sql['where'][] = $tableName . '.uid IN (SELECT ' . $columnMap->getParentKeyFieldName() . ' FROM ' . $relationTableName . ' WHERE ' . $columnMap->getChildKeyFieldName() . '=' . $parameterIdentifier . $additionalWhereForMatchFields . ')';
 				} elseif ($typeOfRelation === ColumnMap::RELATION_HAS_MANY) {
 					$parentKeyFieldName = $columnMap->getParentKeyFieldName();
 					if (isset($parentKeyFieldName)) {
@@ -483,7 +514,6 @@ class Typo3DbQueryParser implements \TYPO3\CMS\Core\SingletonInterface {
 	 * @return void
 	 */
 	protected function addAdditionalWhereClause(QuerySettingsInterface $querySettings, $tableName, &$sql) {
-		$this->addVisibilityConstraintStatement($querySettings, $tableName, $sql);
 		if ($querySettings->getRespectSysLanguage()) {
 			$this->addSysLanguageStatement($tableName, $sql, $querySettings);
 		}

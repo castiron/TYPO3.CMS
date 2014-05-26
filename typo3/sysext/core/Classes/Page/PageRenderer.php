@@ -1949,9 +1949,11 @@ class PageRenderer implements \TYPO3\CMS\Core\SingletonInterface {
 		$metaTags = implode(LF, $this->metaTags);
 		$markerArray = $this->getPreparedMarkerArray($jsLibs, $jsFiles, $jsFooterFiles, $cssLibs, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs, $metaTags);
 		$template = $this->getTemplateForPart($part);
-		if ($part === self::PART_COMPLETE) {
-			$this->reset();
-		}
+
+		// The page renderer needs a full reset, even when only rendering one part of the page
+		// This means that you can only register footer files *after* the header has been already rendered.
+		// In case you render the footer part first, header files can only be added *after* the footer has been rendered
+		$this->reset();
 		return trim(\TYPO3\CMS\Core\Html\HtmlParser::substituteMarkerArray($template, $markerArray, '###|###'));
 	}
 

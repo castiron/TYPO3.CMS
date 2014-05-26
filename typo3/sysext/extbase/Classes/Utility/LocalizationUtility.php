@@ -78,6 +78,11 @@ class LocalizationUtility {
 	static protected $alternativeLanguageKeys = array();
 
 	/**
+	 * @var \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface
+	 */
+	static protected $configurationManager = NULL;
+
+	/**
 	 * Returns the localized label of the LOCAL_LANG key, $key.
 	 *
 	 * @param string $key The key from the LOCAL_LANG array for which to return the value.
@@ -259,7 +264,7 @@ class LocalizationUtility {
 	 * @param string $parentKey the name of the parent key in the recursion; is only needed for recursion.
 	 * @return array flattened array of labels.
 	 */
-	protected function flattenTypoScriptLabelArray(array $labelValues, $parentKey = '') {
+	static protected function flattenTypoScriptLabelArray(array $labelValues, $parentKey = '') {
 		$result = array();
 		foreach ($labelValues as $key => $labelValue) {
 			if (!empty($parentKey)) {
@@ -283,7 +288,7 @@ class LocalizationUtility {
 	 * @param string $charset The source charset
 	 * @return string converted string
 	 */
-	protected function convertCharset($value, $charset) {
+	static protected function convertCharset($value, $charset) {
 		if (TYPO3_MODE === 'FE') {
 			return $GLOBALS['TSFE']->csConv($value, $charset);
 		} else {
@@ -298,8 +303,12 @@ class LocalizationUtility {
 	 * @return \TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface
 	 */
 	static protected function getConfigurationManager() {
+		if (!is_null(static::$configurationManager)) {
+			return static::$configurationManager;
+		}
 		$objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Extbase\\Object\\ObjectManager');
 		$configurationManager = $objectManager->get('TYPO3\\CMS\\Extbase\\Configuration\\ConfigurationManagerInterface');
+		static::$configurationManager = $configurationManager;
 		return $configurationManager;
 	}
 }
