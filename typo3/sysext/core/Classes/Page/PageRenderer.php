@@ -1954,7 +1954,7 @@ class PageRenderer implements \TYPO3\CMS\Core\SingletonInterface {
 	public function renderPageWithUncachedObjects($substituteHash) {
 		$this->prepareRendering();
 		list($jsLibs, $jsFiles, $jsFooterFiles, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs) = $this->renderJavaScriptAndCss();
-		$this->executePostRenderHook($jsLibs, $jsFiles, $jsFooterFiles, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs);
+		$this->executePostRenderHook($jsLibs, $jsFiles, $jsFooterFiles, $cssLibs, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs);
 		$markerArray = $this->getPreparedMarkerArrayForPageWithUncachedObjects($substituteHash);
 		$template = $this->getTemplateForPart(self::PART_COMPLETE);
 		return trim(\TYPO3\CMS\Core\Html\HtmlParser::substituteMarkerArray($template, $markerArray, '###|###'));
