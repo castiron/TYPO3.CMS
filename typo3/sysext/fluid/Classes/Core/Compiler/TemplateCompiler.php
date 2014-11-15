@@ -336,28 +336,69 @@ EOD;
 	}
 
 	/**
-	 * @param \TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanNode $node
+	 * @param \TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanUnitNode $node
 	 * @return array
 	 * @see convert()
 	 */
-	protected function convertBooleanNode(\TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanNode $node) {
-		$initializationPhpCode = '// Rendering Boolean node' . chr(10);
+	protected function convertBooleanUnitNode(\TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanUnitNode $node) {
 		if ($node->getComparator() !== NULL) {
 			$convertedLeftSide = $this->convert($node->getLeftSide());
 			$convertedRightSide = $this->convert($node->getRightSide());
 
 			return array(
-				'initialization' => $initializationPhpCode . $convertedLeftSide['initialization'] . $convertedRightSide['initialization'],
-				'execution' => sprintf('TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanNode::evaluateComparator(\'%s\', %s, %s)', $node->getComparator(), $convertedLeftSide['execution'], $convertedRightSide['execution'])
+				'initialization' => $convertedLeftSide['initialization'] . $convertedRightSide['initialization'],
+				'execution' => sprintf('TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanUnitNode::evaluateComparator(\'%s\', %s, %s)', $node->getComparator(), $convertedLeftSide['execution'], $convertedRightSide['execution'])
 			);
 		} else {
 			// simple case, no comparator.
 			$converted = $this->convert($node->getSyntaxTreeNode());
 			return array(
-				'initialization' => $initializationPhpCode . $converted['initialization'],
-				'execution' => sprintf('TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanNode::convertToBoolean(%s)', $converted['execution'])
+				'initialization' => $converted['initialization'],
+				'execution' => sprintf('TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanUnitNode::convertToBoolean(%s)', $converted['execution'])
 			);
 		}
+	}
+
+	/**
+	 * @param \TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanNode $node
+	 * @return array
+	 * @see convert()
+	 */
+	protected function convertBooleanNode(\TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanNode $node) {
+		$initializationPhpCode = '// Rendering Boolean Node' . chr(10);
+		$expressions = $node->getExpressions();
+		$junction = $node->getJunction();
+
+		if (!$junction) {
+			return $this->convertBooleanUnitNode(current($expressions));
+		}
+
+		$convertedInitializations = array();
+		$convertedExecutions = array();
+
+		foreach ($expressions as $expression) {
+			if ($expression instanceof \TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanUnitNode) {
+				$converted = $this->convertBooleanUnitNode($expression);
+			} else if ($expression instanceof \TYPO3\CMS\Fluid\Core\Parser\SyntaxTree\BooleanNode) {
+				$converted = $this->convertBooleanNode($expression);
+			} else {
+				// not possible
+				continue;
+			}
+			$convertedInitializations[] = $converted['initialization'];
+			$convertedExecutions[] = $converted['execution'];
+		}
+		$vars = str_repeat(', %s', count($convertedExecutions));
+
+		$format = "TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanUnitNode::evaluate('$junction'$vars)";
+		array_unshift($convertedExecutions, $format);
+		$execution = call_user_func_array('sprintf', $convertedExecutions);
+
+		return array(
+			'initialization' => $initializationPhpCode . implode('', $convertedInitializations),
+			'execution' => $execution
+		);
+
 	}
 
 	/**
