@@ -390,7 +390,7 @@ EOD;
 		}
 		$vars = str_repeat(', %s', count($convertedExecutions));
 
-		$format = "TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanUnitNode::evaluate('$junction'$vars)";
+		$format = "TYPO3\\CMS\\Fluid\\Core\\Parser\\SyntaxTree\\BooleanNode::evaluate('$junction'$vars)";
 		array_unshift($convertedExecutions, $format);
 		$execution = call_user_func_array('sprintf', $convertedExecutions);
 

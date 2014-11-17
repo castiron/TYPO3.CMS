@@ -34,25 +34,25 @@ class BooleanUnitNode extends AbstractNode {
 	 * @var string
 	 */
 	static protected $booleanExpressionTextNodeCheckerRegularExpression = '/
-		^                 # Start with first input symbol
-		(?:               # start repeat
-			COMPARATORS   # We allow all comparators
-			|\s*          # Arbitary spaces
-			|-?           # Numbers, possibly with the "minus" symbol in front.
-				[0-9]+    # some digits
-				(?:       # and optionally a dot, followed by some more digits
+		^                   # Start with first input symbol
+		(?:                 # start repeat
+			COMPARATORS       # We allow all comparators
+			|\s*              # Arbitary spaces
+			|-?               # Numbers, possibly with the "minus" symbol in front.
+				[0-9]+          # some digits
+				(?:             # and optionally a dot, followed by some more digits
 					\\.
 					[0-9]+
 				)?
-			|\'[^\'\\\\]* # single quoted string literals with possibly escaped single quotes
+			|\'[^\'\\\\]*     # single quoted string literals with possibly escaped single quotes
 				(?:
-					\\\\.      # escaped character
-					[^\'\\\\]* # unrolled loop following Jeffrey E.F. Friedl
+					\\\\.         # escaped character
+					[^\'\\\\]*    # unrolled loop following Jeffrey E.F. Friedl
 				)*\'
-			|"[^"\\\\]*   # double quoted string literals with possibly escaped double quotes
+			|"[^"\\\\]*       # double quoted string literals with possibly escaped double quotes
 				(?:
-					\\\\.     # escaped character
-					[^"\\\\]* # unrolled loop following Jeffrey E.F. Friedl
+					\\\\.         # escaped character
+					[^"\\\\]*     # unrolled loop following Jeffrey E.F. Friedl
 				)*"
 		)*
 		$/x';
@@ -108,8 +108,11 @@ class BooleanUnitNode extends AbstractNode {
 		$this->leftSide = new RootNode();
 		$this->rightSide = new RootNode();
 		$this->comparator = NULL;
+
+		$regex = str_replace('COMPARATORS', implode('|', self::$comparators), self::$booleanExpressionTextNodeCheckerRegularExpression);
+
 		foreach ($childNodes as $childNode) {
-			if ($childNode instanceof TextNode && !preg_match(str_replace('COMPARATORS', implode('|', self::$comparators), self::$booleanExpressionTextNodeCheckerRegularExpression), $childNode->getText())) {
+			if ($childNode instanceof TextNode && !preg_match($regex, $childNode->getText())) {
 				// $childNode is text node, and no comparator found.
 				$this->comparator = NULL;
 				// skip loop and fall back to classical to boolean conversion.

@@ -26,6 +26,7 @@ class BooleanNode extends AbstractNode {
 	 */
 	static protected $junctions = array('&&','||','AND','OR','and','or');
 
+
 	/**
 	 * BooleanNodes or BooleanUnitNodes bound to the current junction
 	 *
@@ -64,11 +65,48 @@ class BooleanNode extends AbstractNode {
 
 		$this->expressions = new RootNode();
 
+		$regex = '/' . implode('|',array_map('preg_quote', self::$junctions)) . '/x';
+
+
 		$units = new RootNode();
+
+		$clauses = array();
+		$currentClause = new \stdClass();
+		$currentClause->nodes = array();
+		$currentClause->junction = NULL;
+
 		foreach ($childNodes as $childNode) {
-			$units->addChildNode($childNode);
+			$matches = NULL;
+			if ($childNode instanceof TextNode && preg_match($regex, $childNode->getText(), $matches)) {
+
+				$currentJunction = self::reduceJunction($matches[0]);
+//				if ($currentClause->junction) {
+//					if ($currentClause->junction != $currentJunction) {
+//
+//					}
+//				} else {
+//					$currentClause->junction = $currentJunction;
+//				}
+
+				$currentClause->junction = $currentJunction;
+				$clauses[] = $currentClause;
+				$currentClause = new \stdClass();
+				$currentClause->nodes = array();
+
+
+				$remainingText = trim(str_replace($matches[0], '', $childNode->getText()));
+				if ($remainingText) {
+					$currentClause->nodes[] = new TextNode($remainingText);
+				}
+
+			} else {
+				$currentClause->nodes[] = $childNode;
+			}
 		}
-		$this->expressions->addChildNode(new BooleanUnitNode($units));
+		$clauses[] = $currentClause;
+
+		$a = 1;
+//		$this->expressions->addChildNode(new BooleanUnitNode($units));
 	}
 
 
@@ -93,42 +131,42 @@ class BooleanNode extends AbstractNode {
 	 * @return boolean the boolean value
 	 */
 	public function evaluate(\TYPO3\CMS\Fluid\Core\Rendering\RenderingContextInterface $renderingContext) {
-		$a = 1;
+		if (!$this->junction) {
+			$booleanUnit = current($this->expressions->getChildNodes());
+			return $booleanUnit->evaluate($renderingContext);
+		}
+
+		if ($this->junction == self::JUNCTION_OR) {
+			foreach ($this->expressions->getChildNodes() as $booleanUnit) {
+				if ($booleanUnit->evaluate($renderingContext)) {
+					return TRUE;
+				}
+			}
+			return FALSE;
+		}
+
+		foreach ($this->expressions->getChildNodes() as $booleanUnit) {
+			if (!$booleanUnit->evaluate($renderingContext)) {
+				return FALSE;
+			}
+		}
+		return TRUE;
 	}
 
-
-
 	/**
-	 * Convert argument strings to their equivalents. Needed to handle strings with a boolean meaning.
-	 *
-	 * Must be public and static as it is used from inside cached templates.
-	 *
-	 * @param mixed $value Value to be converted to boolean
-	 * @return boolean
+	 * @param $str
+	 * @return string
 	 */
-	static public function convertToBoolean($value) {
-		if (is_bool($value)) {
-			return $value;
+	protected static function reduceJunction($str) {
+		switch ($str) {
+			case '&&':
+			case 'AND':
+			case 'and':
+				return self::JUNCTION_AND;
+			case '||':
+			case 'OR':
+			case 'or':
+				return self::JUNCTION_OR;
 		}
-
-		if (is_integer($value) || is_float($value)) {
-			return !empty($value);
-		}
-
-		if (is_numeric($value)) {
-			return ($value != 0);
-		}
-
-		if (is_string($value)) {
-			return (!empty($value) && strtolower($value) !== 'false');
-		}
-		if (is_array($value) || (is_object($value) && $value instanceof \Countable)) {
-			return (bool) count($value);
-		}
-		if (is_object($value)) {
-			return TRUE;
-		}
-
-		return FALSE;
 	}
 }
