@@ -235,7 +235,7 @@ class SimpleFileBackend extends \TYPO3\CMS\Core\Cache\Backend\AbstractBackend im
 			throw new \InvalidArgumentException('The specified entry identifier must not be empty.', 1334756736);
 		}
 		$temporaryCacheEntryPathAndFilename = $this->cacheDirectory . uniqid() . '.temp';
-		$result = file_put_contents($temporaryCacheEntryPathAndFilename, $data);
+		$result = file_put_contents($temporaryCacheEntryPathAndFilename, $data, LOCK_EX);
 		\TYPO3\CMS\Core\Utility\GeneralUtility::fixPermissions($temporaryCacheEntryPathAndFilename);
 		if ($result === FALSE) {
 			throw new \TYPO3\CMS\Core\Cache\Exception('The temporary cache file "' . $temporaryCacheEntryPathAndFilename . '" could not be written.', 1334756737);
