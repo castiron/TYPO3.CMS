@@ -83,9 +83,9 @@ class PackageManager extends \TYPO3\Flow\Package\PackageManager implements \TYPO
 	 */
 	public function __construct() {
 		$this->packagesBasePaths = array(
-			'local'     => PATH_typo3conf . 'ext',
-			'global'    => PATH_typo3 . 'ext',
 			'sysext'    => PATH_typo3 . 'sysext',
+			'global'    => PATH_typo3 . 'ext',
+			'local'     => PATH_typo3conf . 'ext',
 			'composer'  => PATH_site . 'Packages',
 		);
 		$this->packageStatesPathAndFilename = PATH_typo3conf . 'PackageStates.php';
