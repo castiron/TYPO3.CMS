@@ -85,9 +85,9 @@ class PackageManager extends \TYPO3\Flow\Package\PackageManager implements \TYPO
 		// The order of paths is crucial for allowing overriding of system extension by local extensions.
 		// Pay attention if you change order of the paths here.
 		$this->packagesBasePaths = array(
-			'local'     => PATH_typo3conf . 'ext',
-			'global'    => PATH_typo3 . 'ext',
 			'sysext'    => PATH_typo3 . 'sysext',
+			'global'    => PATH_typo3 . 'ext',
+			'local'     => PATH_typo3conf . 'ext',
 			'composer'  => PATH_site . 'Packages',
 		);
 		$this->packageStatesPathAndFilename = PATH_typo3conf . 'PackageStates.php';
