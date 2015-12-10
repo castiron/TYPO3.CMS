@@ -1148,7 +1148,7 @@ class PageRepository {
 	 * @todo Define visibility
 	 */
 	public function versionOL($table, &$row, $unsetMovePointers = FALSE, $bypassEnableFieldsCheck = FALSE) {
-		if ($this->versioningPreview && is_array($row)) {
+		if ($this->versioningPreview && is_array($row) && !empty($row)) {
 			// will overlay any movePlhOL found with the real record, which in turn
 			// will be overlaid with its workspace version if any.
 			$movePldSwap = $this->movePlhOL($table, $row);
