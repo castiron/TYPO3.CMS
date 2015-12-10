@@ -57,6 +57,19 @@ class tx_scheduler_CachingFrameworkGarbageCollection extends tx_scheduler_Task {
 					// Iterate through configured caches and call garbage collection if
 					// backend is within selected backends in additonal field of task
 				foreach ($cacheConfigurations as $cacheName => $cacheConfiguration) {
+
+					if (!count($cacheConfiguration)) {
+						continue;
+					}
+
+					if (!isset($cacheConfiguration['frontend']) || !isset($cacheConfiguration['backend'])) {
+						continue;
+					}
+
+					if (!isset($cacheConfiguration['options'])) {
+						$cacheConfiguration['options'] = array();
+					}
+
 						// The cache backend used for this cache
 					$usedCacheBackend = $cacheConfiguration['backend'];
 
