@@ -164,7 +164,7 @@ class t3lib_stdGraphic {
 
 			// Setting default JPG parameters:
 		$this->jpegQuality = t3lib_utility_Math::forceIntegerInRange($gfxConf['jpg_quality'], 10, 100, 75);
-		$this->cmds['jpg'] = $this->cmds['jpeg'] = '-colorspace RGB -sharpen 50 -quality ' . $this->jpegQuality;
+		$this->cmds['jpg'] = $this->cmds['jpeg'] = '-colorspace sRGB -sharpen 50 -quality ' . $this->jpegQuality;
 
 		if ($gfxConf['im_combine_filename']) {
 			$this->combineScript = $gfxConf['im_combine_filename'];
@@ -200,7 +200,7 @@ class t3lib_stdGraphic {
 				// - therefore must be disabled in order not to perform sharpen, blurring and such.
 			$this->NO_IM_EFFECTS = 1;
 
-			$this->cmds['jpg'] = $this->cmds['jpeg'] = '-colorspace RGB -quality ' . $this->jpegQuality;
+			$this->cmds['jpg'] = $this->cmds['jpeg'] = '-colorspace sRGB -quality ' . $this->jpegQuality;
 		}
 			// ... but if 'im_v5effects' is set, don't care about 'im_no_effects'
 		if ($gfxConf['im_v5effects']) {
@@ -208,7 +208,7 @@ class t3lib_stdGraphic {
 			$this->V5_EFFECTS = 1;
 
 			if ($gfxConf['im_v5effects'] > 0) {
-				$this->cmds['jpg'] = $this->cmds['jpeg'] = '-colorspace RGB -quality ' . intval($gfxConf['jpg_quality']) . $this->v5_sharpen(10);
+				$this->cmds['jpg'] = $this->cmds['jpeg'] = '-colorspace sRGB -quality ' . intval($gfxConf['jpg_quality']) . $this->v5_sharpen(10);
 			}
 		}
 
