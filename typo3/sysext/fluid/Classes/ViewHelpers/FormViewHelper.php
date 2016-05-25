@@ -82,6 +82,11 @@ class Tx_Fluid_ViewHelpers_FormViewHelper extends Tx_Fluid_ViewHelpers_Form_Abst
 	protected $formActionUriArguments;
 
 	/**
+	 * @bool
+	 */
+	private $securedReferrerFieldRendered = false;
+
+	/**
 	 * @var Tx_Extbase_Configuration_ConfigurationManagerInterface
 	 */
 	protected $configurationManager;
@@ -183,6 +188,7 @@ class Tx_Fluid_ViewHelpers_FormViewHelper extends Tx_Fluid_ViewHelpers_Form_Abst
 		$content .= $this->renderHiddenIdentityField($this->arguments['object'], $this->getFormObjectName());
 		$content .= $this->renderAdditionalIdentityFields();
 		$content .= $this->renderHiddenReferrerFields();
+		$content .= $this->renderHiddenSecuredReferrerField();
 		$content .= $this->renderRequestHashField(); // Render hmac after everything else has been rendered
 		$content .= LF . '</div>' . LF;
 		$content .= $formContent;
@@ -270,7 +276,41 @@ class Tx_Fluid_ViewHelpers_FormViewHelper extends Tx_Fluid_ViewHelpers_Form_Abst
 			$result .= '<input type="hidden" name="' . $this->prefixFieldName('__referrer[controllerName]') . '" value="' . $controllerName . '" />' . chr(10);
 			$result .= '<input type="hidden" name="' . $this->prefixFieldName('__referrer[actionName]') . '" value="' . $actionName . '" />' . chr(10);
 		}
+		$result .= $this->renderHiddenSecuredReferrerField();
+		return $result;
+	}
 
+	/**
+	 * Renders hidden form field for secured referrer information about the current controller and action.
+	 *
+	 * This method is called twice, to deal with subclasses of this class in a most compatible way
+	 *
+	 * @return string Hidden field with secured referrer information
+	 */
+	protected function renderHiddenSecuredReferrerField()
+	{
+		if ($this->securedReferrerFieldRendered) {
+			return '';
+		}
+		$request = $this->renderingContext->getControllerContext()->getRequest();
+		$extensionName = $request->getControllerExtensionName();
+		$controllerName = $request->getControllerName();
+		$actionName = $request->getControllerActionName();
+		if ($this->configurationManager->isFeatureEnabled('rewrittenPropertyMapper')) {
+			$actionRequest = array(
+				'@extension' => $extensionName,
+				'@controller' => $controllerName,
+				'@action' => $actionName,
+			);
+		} else {
+			$actionRequest = array(
+				'extensionName' => $extensionName,
+				'controllerName' => $controllerName,
+				'actionName' => $actionName,
+			);
+		}
+		$result = '<input type="hidden" name="' . $this->prefixFieldName('__referrer[@request]') . '" value="' . htmlspecialchars($this->hashService->appendHmac(serialize($actionRequest))) . '" />' . chr(10);
+		$this->securedReferrerFieldRendered = true;
 		return $result;
 	}
 
