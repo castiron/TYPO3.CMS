@@ -21,6 +21,7 @@ use TYPO3\CMS\Core\LinkHandling\Exception\UnknownUrnException;
 use TYPO3\CMS\Core\LinkHandling\LinkService;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Frontend\Service\TypoLinkCodecService;
 
 /**
@@ -174,9 +175,19 @@ class RteLinkSyntaxUpdater implements RowUpdaterInterface
                     }
 
                     try {
+                        /** @var LinkService $linkService */
                         $linkService = GeneralUtility::makeInstance(LinkService::class);
                         // Ensure the old syntax is converted to the new t3:// syntax, if necessary
                         $linkParts = $linkService->resolve($link);
+                        if (
+                            array_key_exists('type', $linkParts) &&
+                            $linkParts['type'] === LinkService::TYPE_RECORD &&
+                            array_key_exists('url', $linkParts) &&
+                            is_array($linkParts['url']))
+                        {
+                            $linkParts['identifier'] = $linkParts['url']['identifier'];
+                            $linkParts['uid'] = $linkParts['url']['uid'] ?? (MathUtility::canBeInterpretedAsInteger($linkParts['url']['table']) ? $linkParts['url']['table'] : null);
+                        }
                         $anchorTagAttributes['href'] = $linkService->asString($linkParts);
                         $newLink = '<a ' . GeneralUtility::implodeAttributes($anchorTagAttributes, true) . '>' .
                             ($isFlexformField ? htmlspecialchars_decode($matches['content']) : $matches['content']) .
